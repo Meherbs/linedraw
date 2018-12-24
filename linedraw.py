@@ -22,24 +22,24 @@ try:
     import numpy as np
     import cv2
 except:
-    print "Cannot import numpy/openCV. Switching to NO_CV mode."
+    print("Cannot import numpy/openCV. Switching to NO_CV mode.")
     no_cv = True
 
 def find_edges(IM):
-    print "finding edges..."
+    print("finding edges...")
     if no_cv:
         #appmask(IM,[F_Blur])
         appmask(IM,[F_SobelX,F_SobelY])
     else:
-        im = np.array(IM) 
+        im = np.array(IM)
         im = cv2.GaussianBlur(im,(3,3),0)
         im = cv2.Canny(im,100,200)
         IM = Image.fromarray(im)
-    return IM.point(lambda p: p > 128 and 255)  
+    return IM.point(lambda p: p > 128 and 255)
 
 
 def getdots(IM):
-    print "getting contour points..."
+    print("getting contour points...")
     PX = IM.load()
     dots = []
     w,h = IM.size
@@ -56,9 +56,9 @@ def getdots(IM):
                     row.append((x,0))
         dots.append(row)
     return dots
-    
+
 def connectdots(dots):
-    print "connecting contour points..."
+    print("connecting contour points...")
     contours = []
     for y in range(len(dots)):
         for x,v in dots[y]:
@@ -91,7 +91,7 @@ def connectdots(dots):
 
 
 def getcontours(IM,sc=2):
-    print "generating contours..."
+    print("generating contours...")
     IM = find_edges(IM)
     IM1 = IM.copy()
     IM2 = IM.rotate(-90,expand=True).transpose(Image.FLIP_LEFT_RIGHT)
@@ -101,7 +101,7 @@ def getcontours(IM,sc=2):
     contours2 = connectdots(dots2)
 
     for i in range(len(contours2)):
-        contours2[i] = [(c[1],c[0]) for c in contours2[i]]    
+        contours2[i] = [(c[1],c[0]) for c in contours2[i]]
     contours = contours1+contours2
 
     for i in range(len(contours)):
@@ -128,7 +128,7 @@ def getcontours(IM,sc=2):
 
 
 def hatch(IM,sc=16):
-    print "hatching..."
+    print("hatching...")
     PX = IM.load()
     w,h = IM.size
     lg1 = []
@@ -139,7 +139,7 @@ def hatch(IM,sc=16):
             y = y0*sc
             if PX[x0,y0] > 144:
                 pass
-                
+
             elif PX[x0,y0] > 64:
                 lg1.append([(x,y+sc/4),(x+sc,y+sc/4)])
             elif PX[x0,y0] > 16:
@@ -184,9 +184,10 @@ def sketch(path):
 
     lines = []
     if draw_contours:
-        lines += getcontours(IM.resize((resolution/contour_simplify,resolution/contour_simplify*h/w)),contour_simplify)
+        lines += getcontours(IM.resize((int(resolution/contour_simplify),int(resolution/contour_simplify*h/w))),contour_simplify)
     if draw_hatch:
-        lines += hatch(IM.resize((resolution/hatch_size,resolution/hatch_size*h/w)),hatch_size)
+        print(((resolution/hatch_size,resolution/hatch_size*h/w)),hatch_size)
+        lines += hatch(IM.resize((int(resolution/hatch_size),int(resolution/hatch_size*h/w))),hatch_size)
 
     lines = sortlines(lines)
     if show_bitmap:
@@ -199,13 +200,13 @@ def sketch(path):
     f = open(export_path,'w')
     f.write(makesvg(lines))
     f.close()
-    print len(lines), "strokes."
-    print "done."
+    print(len(lines), "strokes.")
+    print("done.")
     return lines
 
 
 def makesvg(lines):
-    print "generating svg file..."
+    print("generating svg file...")
     out = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1">'
     for l in lines:
         l = ",".join([str(p[0]*0.5)+","+str(p[1]*0.5) for p in l])
@@ -232,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument('-nc','--no_contour',dest='no_contour',
         const = draw_contours,default= not draw_contours,action='store_const',
         help="Don't draw contours.")
-       
+
     parser.add_argument('-nh','--no_hatch',dest='no_hatch',
         const = draw_hatch,default= not draw_hatch,action='store_const',
         help='Disable hatching.')
@@ -250,7 +251,7 @@ if __name__ == "__main__":
         help='Level of contour simplification. eg. 1, 2, 3')
 
     args = parser.parse_args()
-    
+
     export_path = args.output_path
     draw_hatch = not args.no_hatch
     draw_contours = not args.no_contour
