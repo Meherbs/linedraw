@@ -1,6 +1,7 @@
 from random import *
 import math
 import argparse
+import json
 
 from PIL import Image, ImageDraw, ImageOps
 
@@ -16,7 +17,7 @@ draw_hatch = True
 show_bitmap = False
 resolution = 1024
 hatch_size = 16
-contour_simplify = 2
+contour_simplify = 1
 
 try:
     import numpy as np
@@ -90,7 +91,7 @@ def connectdots(dots):
     return contours
 
 
-def getcontours(IM,sc=2):
+def getcontours(IM,sc=2, noise=False):
     print("generating contours...")
     IM = find_edges(IM)
     IM1 = IM.copy()
@@ -120,14 +121,16 @@ def getcontours(IM,sc=2):
     for i in range(0,len(contours)):
         contours[i] = [(v[0]*sc,v[1]*sc) for v in contours[i]]
 
-    for i in range(0,len(contours)):
-        for j in range(0,len(contours[i])):
-            contours[i][j] = int(contours[i][j][0]+10*perlin.noise(i*0.5,j*0.1,1)),int(contours[i][j][1]+10*perlin.noise(i*0.5,j*0.1,2))
+    if noise:
+
+        for i in range(0,len(contours)):
+            for j in range(0,len(contours[i])):
+                contours[i][j] = int(contours[i][j][0]+10*perlin.noise(i*0.5,j*0.1,1)),int(contours[i][j][1]+10*perlin.noise(i*0.5,j*0.1,2))
 
     return contours
 
 
-def hatch(IM,sc=16):
+def hatch(IM,sc=16, noise=False):
     print("hatching...")
     PX = IM.load()
     w,h = IM.size
@@ -162,13 +165,24 @@ def hatch(IM,sc=16):
         lines[k] = [l for l in lines[k] if len(l) > 0]
     lines = lines[0]+lines[1]
 
-    for i in range(0,len(lines)):
-        for j in range(0,len(lines[i])):
-            lines[i][j] = int(lines[i][j][0]+sc*perlin.noise(i*0.5,j*0.1,1)),int(lines[i][j][1]+sc*perlin.noise(i*0.5,j*0.1,2))-j
+    if noise:
+
+        for i in range(0,len(lines)):
+            for j in range(0,len(lines[i])):
+                lines[i][j] = int(lines[i][j][0]+sc*perlin.noise(i*0.5,j*0.1,1)),int(lines[i][j][1]+sc*perlin.noise(i*0.5,j*0.1,2))-j
+
     return lines
 
 
-def sketch(path):
+def sketch(
+    path,
+    resolution=1024,
+    draw_hatch=True,
+    hatch_size = 16,
+    draw_contours=True,
+    contour_simplify=1,
+    noise=False
+    ):
     IM = None
     possible = [path,"images/"+path,"images/"+path+".jpg","images/"+path+".png","images/"+path+".tif"]
     for p in possible:
@@ -183,11 +197,22 @@ def sketch(path):
     IM=ImageOps.autocontrast(IM,10)
 
     lines = []
+
     if draw_contours:
-        lines += getcontours(IM.resize((int(resolution/contour_simplify),int(resolution/contour_simplify*h/w))),contour_simplify)
+        lines += getcontours(
+            IM.resize((int(resolution/contour_simplify),
+            int(resolution/contour_simplify*h/w))),
+            contour_simplify,
+            noise=noise
+        )
+
     if draw_hatch:
-        print(((resolution/hatch_size,resolution/hatch_size*h/w)),hatch_size)
-        lines += hatch(IM.resize((int(resolution/hatch_size),int(resolution/hatch_size*h/w))),hatch_size)
+        lines += hatch(
+            IM.resize((int(resolution/hatch_size),
+            int(resolution/hatch_size*h/w))),
+            hatch_size,
+            noise=noise
+        )
 
     lines = sortlines(lines)
     if show_bitmap:
@@ -214,6 +239,32 @@ def makesvg(lines):
     out += '</svg>'
     return out
 
+
+def lines_to_file(lines, filename):
+    with open(filename, "w") as file_to_save:
+        json.dump(lines, file_to_save)
+
+
+def image_to_json(
+    image,
+    filename,
+    resolution=1024,
+    draw_hatch=True,
+    hatch_size = 16,
+    draw_contours=True,
+    contour_simplify=1,
+    noise=False
+    ):
+    lines=sketch(
+        image,
+        resolution=resolution,
+        draw_hatch=draw_hatch,
+        hatch_size=hatch_size,
+        draw_contours=draw_contours,
+        contour_simplify=contour_simplify,
+        noise=noise
+        )
+    lines_to_file(lines, filename)
 
 
 if __name__ == "__main__":
