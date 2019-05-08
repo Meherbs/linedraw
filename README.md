@@ -1,13 +1,11 @@
 # linedraw
-Convert images to vectorized line drawings for plotters.
-![Alt text](/screenshots/1.png?raw=true "")
+A fork of https://github.com/LingDong-/linedraw.
 
-- Exports polyline-only svg file with optimized stroke order for plotters;
-- Sketchy style powered by Perlin noise;
-- Contour-only or hatch-only modes.
+* updated for Python 3
+* added various functions for use with https://github.com/evildmp/PantoGraph
 
 ## Dependencies
-Python 2, PIL/Pillow, numpy, OpenCV (Optional for better performance)
+Python 3, PIL/Pillow, numpy, OpenCV (Optional for better performance)
 
 ## Usage
 Convert an image to line drawing and export .SVG format:
